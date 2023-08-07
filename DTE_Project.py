@@ -4,9 +4,7 @@ import dask.dataframe as dd
 from math import exp, sqrt
 from numba import jit
 
-# A_2. Read Data Files in
-# Data Preprocessing Functions
-# These functions are designed to convert Unix time to a readable format and clean column names. 
+# These functions are designed to convert Unix time to a readable format and clean column names
 def convert_unix_to_readable(df, unix_cols):
     for col in unix_cols:
         df[col] = pd.to_datetime(df[col], unit='s')
@@ -15,8 +13,6 @@ def convert_unix_to_readable(df, unix_cols):
 def clean_column_name(column_name):
     return column_name.replace("[", "").replace("]", "").strip().lower()
 
-
-# I'm reading the SPY options data for different months of 2022 and selecting specific columns for analysis.
 dtypes = {
     ' [C_ASK]': 'object',  
     ' [C_BID]': 'object',
@@ -125,19 +121,19 @@ def calculate_fair_price_with_checks(row, r=0.015):
     p_fair_price = american_option_price(S, K, T, r, p_iv, option_type='put') if p_iv > 0 else None
     return pd.Series({'c_fair_price': c_fair_price, 'p_fair_price': p_fair_price})
 
-# Read the processed data and convert IV columns to numeric values.
+# Read the processed data and convert IV columns to numeric values
 df = pd.read_csv('C:/Users/Santiago/Desktop/Portfolio/DTE_Project/DTE_Data.txt', sep='\t')
 df['c_iv'] = pd.to_numeric(df['c_iv'], errors='coerce').fillna(0)
 df['p_iv'] = pd.to_numeric(df['p_iv'], errors='coerce').fillna(0)
 
-# Fill missing IV values using interpolation.
+# Fill missing IV values using interpolation
 df_filled_c_iv = fill_missing_iv_interpolation(df, 'c_iv')
 df_filled_iv = fill_missing_iv_interpolation(df_filled_c_iv, 'p_iv')
 
-# Convert pandas DataFrame to Dask DataFrame for efficient computation.
+# Convert pandas DataFrame to Dask DataFrame for efficient computation
 ddf = pd.from_pandas(df_filled_iv, npartitions=1000)
 
-# Calculate fair prices for call and put options using Dask (it's more efficient for large data).
+# Calculate fair prices for call and put options using Dask (it's more efficient for large data)
 ddf['c_fair_price'] = ddf.apply(
     lambda row: american_option_price(row['underlying_last'], row['strike'], row['dte'], 0.015, row['c_iv'] / 100, 'call')
                 if row['underlying_last'] > 0 and row['strike'] > 0 and row['dte'] > 0 and row['c_iv'] > 0 else None, 
@@ -150,7 +146,7 @@ ddf['p_fair_price'] = ddf.apply(
     axis=1,
     meta=(None, 'float64'))
 
-# Convert Dask DataFrame back to pandas DataFrame.
+# Convert Dask DataFrame back to pandas DataFrame
 DF = ddf.compute()
 
 
